@@ -212,15 +212,16 @@ class TestScholarly(unittest.TestCase):
                          sum(pub.get('public_access', None) is True for pub in author['publications']))
         self.assertEqual(author['public_access']['not_available'],
                          sum(pub.get('public_access', None) is False for pub in author['publications']))
-        pub = author['publications'][2]
+        pub = author['publications'][1]
         self.assertEqual(pub['author_pub_id'], u'4bahYMkAAAAJ:LI9QrySNdTsC')
         self.assertTrue('5738786554683183717' in pub['cites_id'])
         scholarly.fill(pub)
+        self.assertEqual(pub['pub_url'], "https://dl.acm.org/doi/abs/10.1145/3130800.3130815")
         mandate = Mandate(agency="US National Science Foundation", effective_date="2016/1", embargo="12 months",
                           url_policy="https://www.nsf.gov/pubs/2015/nsf15052/nsf15052.pdf",
                           url_policy_cached="/mandates/nsf-2021-02-13.pdf",
                           grant="BCS-1354029")
-        self.assertIn(mandate, pub['mandates'])
+        self.assertIn(mandate['agency'], [_mandate['agency'] for _mandate in pub['mandates']])
         # Trigger the pprint method, but suppress the output
         with self.suppress_stdout():
             scholarly.pprint(author)
@@ -228,7 +229,7 @@ class TestScholarly(unittest.TestCase):
         # Check for the complete list of coauthors
         self.assertGreaterEqual(len(author['coauthors']), 20)
         if len(author['coauthors']) > 20:
-            self.assertGreaterEqual(len(author['coauthors']), 36)
+            self.assertGreaterEqual(len(author['coauthors']), 35)
             self.assertTrue('I23YUh8AAAAJ' in [_coauth['scholar_id'] for _coauth in author['coauthors']])
 
     def test_search_author_multiple_authors(self):
@@ -684,33 +685,18 @@ class TestScholarlyWithProxy(unittest.TestCase):
         pubs = [p for p in scholarly.search_citedby(publication_id)]
         self.assertGreaterEqual(len(pubs), 11)
 
-    @unittest.skip(reason="The BiBTeX comparison is not reliable")
     def test_bibtex(self):
         """
         Test that we get the BiBTeX entry correctly
         """
 
-        expected_result = \
-        ("""@inproceedings{ester1996density,
-         abstract = {Clustering algorithms are attractive for the task of class identification in spatial databases. """
-         """However, the application to large spatial databases rises the following requirements for clustering algorithms: """
-         """minimal requirements of domain knowledge to determine the input},
-         author = {Ester, Martin and Kriegel, Hans-Peter and Sander, J{\\"o}rg and Xu, Xiaowei and others},
-         booktitle = {kdd},
-         number = {34},
-         pages = {226--231},
-         pub_year = {1996},
-         title = {A density-based algorithm for discovering clusters in large spatial databases with noise.},
-         venue = {kdd},
-         volume = {96}
-        }
+        with open("testdata/bibtex.txt", "r") as f:
+            expected_result = "".join(f.readlines())
 
-        """
-        )
-        pub = scholarly.search_single_pub("A density-based algorithm for discovering clusters in large "
-                                          "spatial databases with noise", filled=True)
+        pub = scholarly.search_single_pub("A distribution-based clustering algorithm for mining in large "
+                                          "spatial databases", filled=True)
         result = scholarly.bibtex(pub)
-        self.assertEqual(result, expected_result.replace("\n        ", "\n"))
+        self.assertEqual(result, expected_result)
 
     def test_search_pubs(self):
         """

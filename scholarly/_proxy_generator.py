@@ -136,7 +136,8 @@ class ProxyGenerator(object):
         :rtype: {bool}
         """
         with requests.Session() as session:
-            session.proxies = proxies
+            # Reformat proxy for requests. Requests and HTTPX use different proxy format.
+            session.proxies = {'http':proxies['http://'], 'https':proxies['https://']}
             try:
                 resp = session.get("http://httpbin.org/ip", timeout=self._TIMEOUT)
                 if resp.status_code == 200:
@@ -189,11 +190,12 @@ class ProxyGenerator(object):
         :returns: whether or not the proxy was set up successfully
         :rtype: {bool}
         """
-        if http[:4] != "http":
+        # Reformat proxy for HTTPX
+        if http[:4] not in ("http", "sock"):
             http = "http://" + http
         if https is None:
             https = http
-        elif https[:5] != "https":
+        elif https[:5] not in ("https", "socks"):
             https = "https://" + https
 
         proxies = {'http://': http, 'https://': https}
@@ -365,8 +367,8 @@ class ProxyGenerator(object):
     def _get_chrome_webdriver(self):
         if self._proxy_works:
             webdriver.DesiredCapabilities.CHROME['proxy'] = {
-                "httpProxy": self._proxies['http'],
-                "sslProxy": self._proxies['https'],
+                "httpProxy": self._proxies['http://'],
+                "sslProxy": self._proxies['https://'],
                 "proxyType": "MANUAL"
             }
 
@@ -381,8 +383,8 @@ class ProxyGenerator(object):
         if self._proxy_works:
             # Redirect webdriver through proxy
             webdriver.DesiredCapabilities.FIREFOX['proxy'] = {
-                "httpProxy": self._proxies['http'],
-                "sslProxy": self._proxies['https'],
+                "httpProxy": self._proxies['http://'],
+                "sslProxy": self._proxies['https://'],
                 "proxyType": "MANUAL",
             }
 

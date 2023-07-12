@@ -313,6 +313,7 @@ class PublicationParser(object):
                                 'YYYY/M/D',
                                 'YYYY/MM/D']
                     publication['bib']['pub_year'] = arrow.get(val.text, patterns).year
+                    publication['bib']['pub_date'] = val.text
                 elif key == 'description':
                     # try to find all the gsh_csp if they exist
                     abstract = val.find_all(class_='gsh_csp')
@@ -401,6 +402,11 @@ class PublicationParser(object):
             publication = self.fill(publication)
         a = BibDatabase()
         converted_dict = publication['bib']
+        try:
+            url = publication['eprint_url']
+        except KeyError:
+            url = publication.get('pub_url', '')
+        converted_dict['url'] = url
         converted_dict = remap_bib(converted_dict, _BIB_REVERSE_MAPPING)
         str_dict = {key: str(value) for key, value in converted_dict.items()}
         # convert every key of the dictionary to string to be Bibtex compatible
