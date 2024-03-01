@@ -236,14 +236,26 @@ class PublicationParser(object):
                 publication['bib']['pub_year'] = 'NA'
             publication['bib']['venue'] = venue
 
-        if databox.find('div', class_='gs_rs'):
-            publication['bib']['abstract'] = databox.find('div', class_='gs_rs').text
+        # Add "readmore" section
+        if databox.find('div', class_='gs_fma'):
+            publication['bib']['abstract'] = databox.find('div', class_='gs_fma').text
             publication['bib']['abstract'] = publication['bib']['abstract'].replace(u'\u2026', u'')
             publication['bib']['abstract'] = publication['bib']['abstract'].replace(u'\n', u' ')
             publication['bib']['abstract'] = publication['bib']['abstract'].strip()
 
             if publication['bib']['abstract'][0:8].lower() == 'abstract':
                 publication['bib']['abstract'] = publication['bib']['abstract'][9:].strip()
+
+        # Short abstract
+        else:
+            if databox.find('div', class_='gs_rs'):
+                publication['bib']['abstract'] = databox.find('div', class_='gs_rs').text
+                publication['bib']['abstract'] = publication['bib']['abstract'].replace(u'\u2026', u'')
+                publication['bib']['abstract'] = publication['bib']['abstract'].replace(u'\n', u' ')
+                publication['bib']['abstract'] = publication['bib']['abstract'].strip()
+    
+                if publication['bib']['abstract'][0:8].lower() == 'abstract':
+                    publication['bib']['abstract'] = publication['bib']['abstract'][9:].strip()
 
         publication['url_scholarbib'] = _BIBCITE.format(cid, pos)
         sclib = self.nav.publib.format(id=cid)
