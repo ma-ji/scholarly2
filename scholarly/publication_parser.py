@@ -237,8 +237,8 @@ class PublicationParser(object):
             publication['bib']['venue'] = venue
 
         # Add "readmore" section
-        if databox.find('div', class_='gs_fma'):
-            publication['bib']['abstract'] = databox.find('div', class_='gs_fma').text
+        if databox.find('div', class_='gs_fma_snp'):
+            publication['bib']['abstract'] = databox.find('div', class_='gs_fma_snp').text
             publication['bib']['abstract'] = publication['bib']['abstract'].replace(u'\u2026', u'')
             publication['bib']['abstract'] = publication['bib']['abstract'].replace(u'\n', u' ')
             publication['bib']['abstract'] = publication['bib']['abstract'].strip()
