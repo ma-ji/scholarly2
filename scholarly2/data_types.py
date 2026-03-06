@@ -16,7 +16,6 @@ class PublicationSource(str, Enum):
     * Appearing as a PUBLICATION SNIPPET and
     * Appearing as a paper in an AUTHOR PAGE
 
-    ------------
 
     "PUBLICATION SEARCH SNIPPET".
     This form captures the publication  when it appears as a "snippet" in
@@ -43,7 +42,7 @@ class PublicationSource(str, Enum):
     We can fill these snippets by clicking on the "Cite" button" and get back the MLA/APA/Chicago/...
     citations forms, PLUS links for BibTeX, EndNote, RefMan, and RefWorks.
 
-    ------------
+
     "AUTHOR PUBLICATION ENTRY"
 
     We also have publications that appear in the "author pages" of Google Scholar.

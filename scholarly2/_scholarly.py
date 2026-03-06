@@ -87,7 +87,7 @@ class _Scholarly:
                   ``False`` otherwise
         :rtype: bool
 
-        :Example::
+        Example::
 
             from scholarly2 import scholarly
 

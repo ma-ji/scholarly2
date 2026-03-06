@@ -1,6 +1,17 @@
 # CHANGELOG
 
-## Unreleased
+## Changes in v2.0.0
+
+### Breaking Changes
+
+- Package renamed from `scholarly` to `scholarly2`. Update all imports:
+  `from scholarly import …` → `from scholarly2 import …`
+
+### Features
+
+- Add `scholarly.load_socks5_proxy_file(path: str) -> bool` — explicit
+  runtime loading of a SOCKS5 proxy file from any path, independent of
+  the automatic `.env.socks5` discovery at import time.
 
 ### Deprecations
 
@@ -14,19 +25,6 @@
 - `scholarly.use_proxy(pg)` now reuses the primary proxy generator for all
   requests when no secondary proxy generator is supplied. It no longer
   auto-enables `FreeProxies()` as an implicit secondary path.
-
-## Changes in v2.0.0
-
-### Breaking Changes
-
-- Package renamed from `scholarly` to `scholarly2`. Update all imports:
-  `from scholarly import …` → `from scholarly2 import …`
-
-### Features
-
-- Add `scholarly.load_socks5_proxy_file(path: str) -> bool` — explicit
-  runtime loading of a SOCKS5 proxy file from any path, independent of
-  the automatic `.env.socks5` discovery at import time.
 
 ---
 
