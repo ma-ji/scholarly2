@@ -247,7 +247,9 @@ print(scholarly.bibtex(pub))
 
 Google Scholar rate-limits aggressively. If you make enough requests, you should expect blocking and captcha pages. Use proxies for anything non-trivial.
 
-Only SOCKS5 workflows are recommended. The legacy methods `ScraperAPI()`, `Luminati()`, `FreeProxies()`, `SingleProxy()`, `Tor_External()`, and `Tor_Internal()` remain for compatibility but are deprecated and will be removed in future releases.
+There are many proxy providers available, I often use [IPRoyal](https://iproyal.com/?r=scholarly2) (disclaimer: this is a referral link). You are welcome to use your own, but make sure you choose `Residential Proxies` (may named differently depending on provider).
+
+For simplicity, only SOCKS5 workflows are recommended. The legacy methods `ScraperAPI()`, `Luminati()`, `FreeProxies()`, `SingleProxy()`, `Tor_External()`, and `Tor_Internal()` remain for compatibility but are deprecated and will be removed in future releases.
 
 ### Automatic `.env.socks5` loading
 

@@ -5,6 +5,8 @@ In general, Google Scholar strictly limits automated requests and blocks scraper
 
 ``scholarly2`` requires a SOCKS5 proxy pool.
 
+There are many proxy providers available, I often use `IPRoyal <https://iproyal.com/?r=scholarly2>`_ (disclaimer: this is a referral link). You are welcome to use your own, but make sure you choose ``Residential Proxies`` (may named differently depending on provider).
+
 Automatic ``.env.socks5`` loading
 ---------------------------------
 
