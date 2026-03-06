@@ -2,7 +2,7 @@
 
 # scholarly2
 
-`scholarly2` is a fork of [scholarly](https://github.com/scholarly-python-package/scholarly), maintained independently by [Ji Ma](mailto:ma47@iu.edu) **strictly for academic and nonprofit purposes**. It retrieves author and publication data from [Google Scholar](https://scholar.google.com) and returns plain Python dictionaries. The current public workflow is:
+`scholarly2` is a fork of [scholarly](https://github.com/scholarly-python-package/scholarly), maintained independently and **strictly for academic and nonprofit purposes**. It retrieves author and publication data from [Google Scholar](https://scholar.google.com) and returns plain Python dictionaries. The current public workflow is:
 
 - author profiles by Scholar ID with `search_author_id(...)`
 - publication lookup with `search_single_pub(...)`
