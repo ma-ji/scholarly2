@@ -81,14 +81,17 @@ class AuthorSource(str, Enum):
 
 class ProxyMode(str, Enum):
     """
-    Defines the different types supported.
+    Defines the supported proxy modes.
+
+    ``SOCKS5_PROXIES`` is the recommended mode. The remaining proxy modes are
+    deprecated compatibility paths.
     """
-    FREE_PROXIES = "FREE_PROXIES"
     SOCKS5_PROXIES = "SOCKS5_PROXIES"
+    # Deprecated compatibility modes:
+    FREE_PROXIES = "FREE_PROXIES"
     SCRAPERAPI = "SCRAPERAPI"
     LUMINATI = "LUMINATI"
     SINGLEPROXY = "SINGLEPROXY"
-    # Deprecated:
     TOR_EXTERNAL = "TOR_EXTERNAL"
     TOR_INTERNAL = "TOR_INTERNAL"
 

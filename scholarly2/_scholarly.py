@@ -116,24 +116,26 @@ class _Scholarly:
                   secondary_proxy_generator: ProxyGenerator = None) -> None:
         """Select which proxy method to use.
 
-        See the available ProxyGenerator methods.
+        Prefer SOCKS5 workflows via ``ProxyGenerator.Socks5Proxies()``,
+        ``ProxyGenerator.Socks5ProxyFile()``, or
+        ``scholarly.load_socks5_proxy_file()``.
 
-        This is used to get some pages that have strong anti-bot prevention.
-        ``secondary_proxy_generator`` is used for other pages that do not have
-        a strong anti-bot prevention. If not set, free proxies are used.
+        ``secondary_proxy_generator`` is optional. If not set, the primary
+        proxy generator is reused for all requests. If both arguments are
+        ``None``, proxying is disabled and direct connections are restored.
 
         :param proxy_generator: a proxy generator object, typically setup with
-                               a premium proxy service (ScraperAPI or Luminati)
+                                a SOCKS5 proxy pool
         :type proxy_generator: ProxyGenerator
-        :param proxy_generator: a second proxy generator object, optional
-        :type proxy_generator: ProxyGenerator
+        :param secondary_proxy_generator: a second proxy generator object, optional
+        :type secondary_proxy_generator: ProxyGenerator
 
         :Example::
 
         .. testcode::
 
             pg = ProxyGenerator()
-            pg.ScraperAPI(YOUR_SCRAPER_API_KEY)
+            pg.Socks5ProxyFile("/path/to/my.env.socks5")
             scholarly.use_proxy(pg)
 
         """

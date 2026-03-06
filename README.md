@@ -247,6 +247,8 @@ print(scholarly.bibtex(pub))
 
 Google Scholar rate-limits aggressively. If you make enough requests, you should expect blocking and captcha pages. Use proxies for anything non-trivial.
 
+Only SOCKS5 workflows are recommended. The legacy methods `ScraperAPI()`, `Luminati()`, `FreeProxies()`, `SingleProxy()`, `Tor_External()`, and `Tor_Internal()` remain for compatibility but are deprecated and will be removed in future releases.
+
 ### Automatic `.env.socks5` loading
 
 If a `.env.socks5` file exists in your working directory, `scholarly2` loads it automatically at import time. Put one proxy per line in:
@@ -264,6 +266,25 @@ user2:password2@proxy.example.com:2080
 
 See [.env.socks5.example](.env.socks5.example) for the expected format.
 
+### Direct SOCKS5 configuration
+
+Use `ProxyGenerator.Socks5Proxies(...)` when you want to configure the proxy pool in code:
+
+```python
+from scholarly2 import ProxyGenerator, scholarly
+
+pg = ProxyGenerator()
+pg.Socks5Proxies([
+    "user1:password1@127.0.0.1:1080",
+    "user2:password2@proxy.example.com:2080",
+])
+scholarly.use_proxy(pg)
+
+pub = scholarly.search_single_pub("10.1007/s11266-018-00057-5")
+```
+
+If you pass only one proxy generator to `scholarly.use_proxy(pg)`, that same SOCKS5 pool is reused for all requests.
+
 ### Explicit file loading
 
 Use `load_socks5_proxy_file(path)` to load a proxy file from any location at runtime:
@@ -278,19 +299,9 @@ if ok:
 
 This is useful when your proxy file lives outside the working directory or has a non-standard name. The file format is the same one-proxy-per-line format as `.env.socks5`.
 
-### Manual proxy setup
+### Deprecated legacy proxy methods
 
-```python
-from scholarly2 import ProxyGenerator, scholarly
-
-pg = ProxyGenerator()
-pg.FreeProxies()
-scholarly.use_proxy(pg)
-
-pub = scholarly.search_single_pub("10.1007/s11266-018-00057-5")
-```
-
-`scholarly2` also supports several paid proxy services through `ProxyGenerator`.
+`ProxyGenerator.ScraperAPI()`, `Luminati()`, `FreeProxies()`, `SingleProxy()`, `Tor_External()`, and `Tor_Internal()` are deprecated compatibility paths. Existing code can still call them, but new setups should use `.env.socks5`, `Socks5Proxies(...)`, `Socks5ProxyFile(...)`, or `load_socks5_proxy_file(path)`.
 
 ## Availability Notes
 

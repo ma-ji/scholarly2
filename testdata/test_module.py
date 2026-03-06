@@ -4,6 +4,7 @@ import sys
 from collections import Counter
 import logging
 import tempfile
+import warnings
 from scholarly2 import scholarly, ProxyGenerator
 from scholarly2._navigator import Navigator
 from scholarly2._scholarly import _Scholarly
@@ -133,10 +134,10 @@ class TestSocks5ProxyConfig(unittest.TestCase):
 
         proxy_file = os.path.join(tempfile.gettempdir(), ".env.socks5")
 
-        with mock.patch("scholarly._scholarly.find_dotenv", side_effect=["", proxy_file]), \
-             mock.patch("scholarly._scholarly.load_dotenv"), \
-             mock.patch("scholarly._scholarly.Navigator", FakeNavigator), \
-             mock.patch("scholarly._scholarly.ProxyGenerator", FakeProxyGenerator):
+        with mock.patch("scholarly2._scholarly.find_dotenv", side_effect=["", proxy_file]), \
+             mock.patch("scholarly2._scholarly.load_dotenv"), \
+             mock.patch("scholarly2._scholarly.Navigator", FakeNavigator), \
+             mock.patch("scholarly2._scholarly.ProxyGenerator", FakeProxyGenerator):
             _Scholarly()
 
         self.assertEqual(len(FakeProxyGenerator.instances), 2)
@@ -189,6 +190,47 @@ class TestNavigator(unittest.TestCase):
         mocked_get_page.assert_called_once_with("https://scholar.google.com/scholar?hl=en&q=test")
         self.assertIsNotNone(soup.find("div", class_="fallback"))
         self.assertEqual(navigator.publib, "/citations?stub=1")
+
+    def test_use_proxy_reuses_primary_when_secondary_missing(self):
+        navigator = self._build_navigator()
+        session = object()
+        primary = mock.Mock()
+        primary.get_session.return_value = session
+
+        navigator.use_proxy(primary)
+
+        self.assertIs(navigator.pm1, primary)
+        self.assertIs(navigator.pm2, primary)
+        self.assertIs(navigator._session1, session)
+        self.assertIs(navigator._session2, session)
+
+    def test_use_proxy_none_restores_direct_connections(self):
+        navigator = self._build_navigator()
+        direct_primary = mock.Mock()
+        direct_primary.get_session.return_value = "primary-session"
+        direct_secondary = mock.Mock()
+        direct_secondary.get_session.return_value = "secondary-session"
+
+        with mock.patch("scholarly2._navigator.ProxyGenerator", side_effect=[direct_primary, direct_secondary]):
+            navigator.use_proxy(None)
+
+        self.assertIs(navigator.pm1, direct_primary)
+        self.assertIs(navigator.pm2, direct_secondary)
+        self.assertEqual(navigator._session1, "primary-session")
+        self.assertEqual(navigator._session2, "secondary-session")
+
+
+class TestLegacyProxyDeprecations(unittest.TestCase):
+
+    def test_single_proxy_emits_deprecation_warning(self):
+        proxy_generator = ProxyGenerator()
+
+        with mock.patch.object(proxy_generator, "_use_proxy", return_value=True):
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                proxy_generator.SingleProxy(http="127.0.0.1:8080")
+
+        self.assertTrue(any(issubclass(w.category, DeprecationWarning) for w in caught))
 
 
 class TestPublicationParser(unittest.TestCase):

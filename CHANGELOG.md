@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## Unreleased
+
+### Deprecations
+
+- Mark `ProxyGenerator.Luminati()`, `ScraperAPI()`, `FreeProxies()`, and
+  `SingleProxy()` as deprecated compatibility methods. Recommend SOCKS5
+  workflows only: `Socks5Proxies()`, `Socks5ProxyFile()`, or
+  `scholarly.load_socks5_proxy_file(path)`.
+
+### Changes
+
+- `scholarly.use_proxy(pg)` now reuses the primary proxy generator for all
+  requests when no secondary proxy generator is supplied. It no longer
+  auto-enables `FreeProxies()` as an implicit secondary path.
+
 ## Changes in v2.0.0
 
 ### Breaking Changes

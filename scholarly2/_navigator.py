@@ -37,8 +37,8 @@ class Navigator(object, metaclass=Singleton):
         self._TIMEOUT = 5
         self._max_retries = 5
         # A Navigator instance has two proxy managers, each with their session.
-        # `pm1` manages the primary, premium proxy.
-        # `pm2` manages the secondary, inexpensive proxy.
+        # `pm1` manages the primary proxy.
+        # `pm2` manages the secondary proxy.
         self.pm1 = ProxyGenerator()
         self.pm2 = ProxyGenerator()
         self._session1 = self.pm1.get_session()
@@ -57,17 +57,22 @@ class Navigator(object, metaclass=Singleton):
             self._TIMEOUT = timeout
 
     def use_proxy(self, pg1: ProxyGenerator, pg2: ProxyGenerator = None):
-        if pg1 is not None:
-            self.pm1 = pg1
+        """Set the primary and secondary proxy managers.
 
-        if pg2 is not None:
-            self.pm2 = pg2
-        else:
+        If only ``pg1`` is provided, it is reused for both request paths.
+        If both arguments are ``None``, proxying is disabled and direct
+        connections are restored.
+        """
+        if pg1 is None and pg2 is None:
+            self.pm1 = ProxyGenerator()
             self.pm2 = ProxyGenerator()
-            proxy_works = self.pm2.FreeProxies()
-            if not proxy_works:
-                self.logger.info("FreeProxy as a secondary proxy is not working. "
-                                 "Using the primary proxy for all requests")
+        else:
+            if pg1 is not None:
+                self.pm1 = pg1
+
+            if pg2 is not None:
+                self.pm2 = pg2
+            elif pg1 is not None:
                 self.pm2 = pg1
 
         self._session1 = self.pm1.get_session()
@@ -91,7 +96,7 @@ class Navigator(object, metaclass=Singleton):
 
         :param pagerequest: the page url
         :type pagerequest: str
-        :param premium: whether or not to use the premium proxy right away
+        :param premium: whether or not to use the primary proxy right away
         :type premium: bool
         :returns: the text from a webpage
         :rtype: {str}
@@ -109,7 +114,7 @@ class Navigator(object, metaclass=Singleton):
                 w = random.uniform(1,2)
                 time.sleep(w)
                 resp = session.get(pagerequest, timeout=timeout)
-                if premium is False:  # premium methods may contain sensitive information
+                if premium is False:  # primary methods may contain sensitive information
                     self.logger.debug("Session proxy config is {}".format(pm._proxies))
 
                 has_captcha = self._requests_has_captcha(resp.text)

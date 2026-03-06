@@ -3,8 +3,7 @@ Quickstart
 
 .. note::
 
-   ``scholarly2`` is a fork of `scholarly <https://github.com/scholarly-python-package/scholarly>`_,
-   maintained independently by Ji Ma. The API is identical; only the package name has changed.
+   ``scholarly2`` is a fork of `scholarly <https://github.com/scholarly-python-package/scholarly>`. Many major updates and fixes have been made to the original package.
 
 Installation
 ------------
@@ -388,30 +387,73 @@ Then you need to initialize an object:
 
     pg = ProxyGenerator()
 
-Select the desired connection type from the following options that
-come from the ProxyGenerator class:
+Only SOCKS5 workflows are recommended. Use one of the following:
 
--  ScraperAPI()
--  Luminati()
--  FreeProxies()
--  SingleProxy()
--  Tor\_Internal()
--  Tor\_External()
+-  ``Socks5Proxies()``
+-  ``Socks5ProxyFile()``
+-  ``scholarly.load_socks5_proxy_file()``
 
-All of these methods return ``True`` if the proxy was setup successfully which
-you can check before beginning to use it with the ``use_proxy`` method.
+The legacy methods ``ScraperAPI()``, ``Luminati()``, ``FreeProxies()``,
+``SingleProxy()``, ``Tor_Internal()``, and ``Tor_External()`` remain
+available for compatibility, but they are deprecated and should not be
+used for new setups.
 
-Example:
+``Automatic .env.socks5 loading``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If a ``.env.socks5`` file exists in your working directory, ``scholarly2``
+loads it automatically at import time. Use one proxy per line in the format
+``USER:PASS@HOST:PORT``.
+
+.. code:: text
+
+    user1:password1@127.0.0.1:1080
+    user2:password2@proxy.example.com:2080
+
+See ``.env.socks5.example`` in the repository root for the expected format.
+
+``Socks5Proxies``
+^^^^^^^^^^^^^^^^^
+pg.Socks5Proxies()
+##################
+
+Use this when you want to define the SOCKS5 proxy pool directly in code.
 
 .. code:: python
 
-    success = pg.SingleProxy(http = <your http proxy>, https = <your https proxy>)
+    from scholarly2 import scholarly, ProxyGenerator
 
-Finally set scholarly2 to use this proxy for your actions
-
-.. code:: python
-
+    pg = ProxyGenerator()
+    success = pg.Socks5Proxies([
+        "user1:password1@127.0.0.1:1080",
+        "user2:password2@proxy.example.com:2080",
+    ])
     scholarly.use_proxy(pg)
+
+    author = scholarly.search_author_id('4bahYMkAAAAJ')
+    scholarly.pprint(author)
+
+If you pass only one proxy generator to ``scholarly.use_proxy(pg)``, that
+same SOCKS5 pool is reused for all requests.
+
+``Socks5ProxyFile``
+^^^^^^^^^^^^^^^^^^^
+pg.Socks5ProxyFile()
+####################
+
+Use this when you already have a proxy file and want to attach it through a
+``ProxyGenerator`` instance.
+
+.. code:: python
+
+    from scholarly2 import scholarly, ProxyGenerator
+
+    pg = ProxyGenerator()
+    success = pg.Socks5ProxyFile("/path/to/my.env.socks5")
+    scholarly.use_proxy(pg)
+
+    author = scholarly.search_author_id('4bahYMkAAAAJ')
+    scholarly.pprint(author)
 
 ``load_socks5_proxy_file``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -420,7 +462,7 @@ Load a SOCKS5 proxy file from an explicit path at runtime.
 ##########################################################
 
 This is useful when the proxy file lives outside the working directory or
-has a non-standard name.  The file format is the same as ``.env.socks5``:
+has a non-standard name. The file format is the same as ``.env.socks5``:
 one ``USER:PASS@HOST:PORT`` entry per line, blank lines and ``#`` comments
 are ignored.
 
@@ -432,174 +474,27 @@ are ignored.
     if ok:
         print("Proxies loaded")
 
-``ScraperAPI``
-^^^^^^^^^^^^^^
-pg.ScraperAPI()
-###############
+``Deprecated legacy proxy methods``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code:: python
+The following compatibility methods are deprecated and may be removed in a
+future release:
 
-    from scholarly2 import scholarly, ProxyGenerator
+-  ``pg.ScraperAPI()``
+-  ``pg.Luminati()``
+-  ``pg.FreeProxies()``
+-  ``pg.SingleProxy()``
+-  ``pg.Tor_External()``
+-  ``pg.Tor_Internal()``
 
-    pg = ProxyGenerator()
-
-You will have to provide your ScraperAPI key
-
-.. code:: python
-
-    success = pg.ScraperAPI(YOUR_SCRAPER_API_KEY)
-
-If you have Startup or higher paid plans, you can use additional options that are allowed for your plan.
-
-.. code:: python
-
-    success = pg.ScraperAPI(YOUR_SCRAPER_API_KEY, country_code='fr', premium=True, render=True)
-
-Finally, you can route your query through the ScraperAPI proxy
-
-.. code:: python
-
-    scholarly.use_proxy(pg)
-
-    author = scholarly.search_author_id('4bahYMkAAAAJ')
-    scholarly.pprint(author)
-
-``Luminati``
-^^^^^^^^^^^^^^^^^
-pg.Luminati()
-#############
-
-.. code:: python
-
-    from scholarly2 import scholarly, ProxyGenerator
-
-    pg = ProxyGenerator()
-    success = pg.Luminati(usr= "your_username", passwd="your_password", port="your_port")
-    scholarly.use_proxy(pg)
-
-    author = scholarly.search_author_id('4bahYMkAAAAJ')
-    scholarly.pprint(author)
-
-``FreeProxies``
-^^^^^^^^^^^^^^^^^^^^
-pg.FreeProxies()
-################
-
-This uses the ``free-proxy`` pip library to add a proxy to your
-configuration.
-
-.. code:: python
-
-    from scholarly2 import scholarly, ProxyGenerator
-
-    pg = ProxyGenerator()
-    success = pg.FreeProxies()
-    scholarly.use_proxy(pg)
-
-    author = scholarly.search_author_id('4bahYMkAAAAJ')
-    scholarly.pprint(author)
-
-``SingleProxy``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-pg.SingleProxy(http: str, https:str)
-####################################
-
-If you want to use a proxy of your choice, feel free to use this option.
-
-.. code:: python
-
-    from scholarly2 import scholarly, ProxyGenerator
-
-    pg = ProxyGenerator()
-    success = pg.SingleProxy(http = <your http proxy>, https = <your https proxy>)
-    scholarly.use_proxy(pg)
-
-    author = scholarly.search_author_id('4bahYMkAAAAJ')
-    scholarly.pprint(author)
-
-**NOTE:** Please create a new proxy object whenever you change proxy
-method, as this can lead to unexpected behavior.
-
-``Tor_External``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-pg.Tor_External(tor_sock_port: int, tor_control_port: int, tor_password: str)
-###############################################################################
-
-This method is deprecated since v1.5
-
-.. code:: python
-
-    from scholarly2 import scholarly, ProxyGenerator
-
-    pg = ProxyGenerator()
-    success = pg.Tor_External(tor_sock_port=9050, tor_control_port=9051, tor_password="scholarly_password")
-    scholarly.use_proxy(pg)
-
-    author = scholarly.search_author_id('4bahYMkAAAAJ')
-    scholarly.pprint(author)
-
-``Tor_Internal``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-pg.Tor_internal(tor_cmd=None, tor_sock_port=None, tor_control_port=None)
-########################################################################
-
-This method is deprecated since v1.5
-
-If you have Tor installed locally, this option allows scholarly2 to
-launch its own Tor process. You need to pass a pointer to the Tor
-executable in your system.
-
-.. code:: python
-
-    from scholarly2 import scholarly, ProxyGenerator
-
-    pg = ProxyGenerator()
-    success = pg.Tor_Internal(tor_cmd = "tor")
-    scholarly.use_proxy(pg)
-
-    author = scholarly.search_author_id('4bahYMkAAAAJ')
-    scholarly.pprint(author)
+Prefer ``Socks5Proxies()``, ``Socks5ProxyFile()``, or
+``scholarly.load_socks5_proxy_file()`` instead.
 
 
-Setting up environment for Luminati and/or Testing
---------------------------------------------------
+Setting up environment for proxy testing
+----------------------------------------
 
-To run the ``test_module.py`` it is advised to create a ``.env`` file in
-the working directory of the ``test_module.py`` as:
-
-.. code:: bash
-
-    touch .env
-
-.. code:: bash
-
-    nano .env # or any editor of your choice
-
-Define the connection method for the Tests, among these options:
-
--  luminati (if you have a Luminati proxy service)
--  scraperapi (if you have a ScraperAPI proxy service)
--  freeproxy
--  tor
--  tor\_internal
--  none (if you want a local connection, which is also the default value)
-
-ex.
-
-.. code:: bash
-
-    CONNECTION_METHOD = luminati
-
-If using a luminati proxy service please append the following to your
-``.env``:
-
-.. code:: bash
-
-    USERNAME = <LUMINATI_USERNAME>
-    PASSWORD = <LUMINATI_PASSWORD>
-    PORT = <PORT_FOR_LUMINATI>
-
-If you prefer SOCKS5 proxies, create a ``.env.socks5`` file in your
+For local testing, the recommended setup is a ``.env.socks5`` file in your
 working directory. ``scholarly2`` will automatically load it on import.
 Use one proxy per line in the format ``USER:PASS@HOST:PORT``. See
 ``.env.socks5.example`` in the repository root for an example.
@@ -611,3 +506,13 @@ Use one proxy per line in the format ``USER:PASS@HOST:PORT``. See
 
 You can also load a proxy file explicitly at runtime using
 ``scholarly.load_socks5_proxy_file(path)``.
+
+Legacy compatibility tests can still use ``CONNECTION_METHOD`` in a ``.env``
+file, but all non-SOCKS5 options are deprecated:
+
+-  ``luminati`` (deprecated)
+-  ``scraperapi`` (deprecated)
+-  ``freeproxy`` (deprecated)
+-  ``tor`` (deprecated)
+-  ``tor_internal`` (deprecated)
+-  ``none``

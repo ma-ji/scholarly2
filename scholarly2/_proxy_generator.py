@@ -44,6 +44,12 @@ class MaxTriesExceededException(Exception):
     """Maximum number of tries by scholarly reached"""
 
 
+_LEGACY_PROXY_DEPRECATION_REASON = (
+    "Legacy proxy integrations are deprecated. Prefer SOCKS5 workflows via "
+    "Socks5Proxies(), Socks5ProxyFile(), or scholarly.load_socks5_proxy_file()."
+)
+
+
 class ProxyGenerator(object):
     _SOCKS5_PROXY_PATTERN = re.compile(
         r"^(?:socks5://)?(?P<user>[^:@\s]+):(?P<password>[^@\s]+)@(?P<host>[^:\s]+):(?P<port>\d+)$"
@@ -78,8 +84,9 @@ class ProxyGenerator(object):
     def get_session(self):
         return self._session
 
+    @deprecated(version='2.1.0', reason=_LEGACY_PROXY_DEPRECATION_REASON)
     def Luminati(self, usr, passwd, proxy_port):
-        """ Setups a luminati proxy without refreshing capabilities.
+        """Deprecated. Set up a Luminati/Bright Data proxy.
 
         :param usr: scholarly username, optional by default None
         :type usr: string
@@ -111,9 +118,10 @@ class ProxyGenerator(object):
             self.logger.warning("Luminati does not seem to work. Reason unknown.")
         return proxy_works
 
+    @deprecated(version='2.1.0', reason=_LEGACY_PROXY_DEPRECATION_REASON)
     def SingleProxy(self, http=None, https=None):
         """
-        Use proxy of your choice
+        Deprecated. Use an arbitrary HTTP(S) proxy configuration.
 
         :param http: http proxy address
         :type http: string
@@ -183,12 +191,17 @@ class ProxyGenerator(object):
 
     def Socks5Proxies(self, proxies):
         """
-        Sets up continuously rotating SOCKS5 proxies from a configured list.
+        Set up continuously rotating SOCKS5 proxies from a configured list.
 
         :param proxies: iterable of SOCKS5 proxies in USER:PASS@HOST:PORT format
         :type proxies: list
         :returns: whether or not a working proxy was found
         :rtype: {bool}
+
+        :Example::
+
+            >>> pg = ProxyGenerator()
+            >>> success = pg.Socks5Proxies(["alice:secret@127.0.0.1:1080"])
         """
         normalized_proxies = [self._normalize_socks5_proxy(proxy) for proxy in proxies]
         if not normalized_proxies:
@@ -213,7 +226,7 @@ class ProxyGenerator(object):
 
     def Socks5ProxyFile(self, proxy_file: str):
         """
-        Loads SOCKS5 proxies from a file and enables them as a rotating pool.
+        Load SOCKS5 proxies from a file and enable them as a rotating pool.
 
         :param proxy_file: path to a file containing one USER:PASS@HOST:PORT per line
         :type proxy_file: str
@@ -657,9 +670,10 @@ class ProxyGenerator(object):
                 dirty_proxy = proxy
             self._dirty_freeproxies.add(dirty_proxy)
 
+    @deprecated(version='2.1.0', reason=_LEGACY_PROXY_DEPRECATION_REASON)
     def FreeProxies(self, timeout=1, wait_time=120):
         """
-        Sets up continuously rotating proxies from the free-proxy library
+        Deprecated. Set up continuously rotating proxies from the free-proxy library.
 
         :param timeout: Timeout for a single proxy in seconds, optional
         :type timeout: float
@@ -700,9 +714,10 @@ class ProxyGenerator(object):
         else:
             return True
 
+    @deprecated(version='2.1.0', reason=_LEGACY_PROXY_DEPRECATION_REASON)
     def ScraperAPI(self, API_KEY, country_code=None, premium=False, render=False):
         """
-        Sets up a proxy using ScraperAPI
+        Deprecated. Set up a proxy using ScraperAPI.
 
         The optional parameters are only for Business and Enterprise plans with
         ScraperAPI. For more details, https://www.scraperapi.com/documentation/
