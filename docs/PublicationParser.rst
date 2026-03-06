@@ -1,7 +1,7 @@
 PublicationParser module
 ----------------------------
 
-.. automodule:: scholarly.publication_parser
+.. automodule:: scholarly2.publication_parser
    :members:
    :undoc-members:
    :show-inheritance:

@@ -1,6 +1,6 @@
 DataTypes module
 -----------------------
 
-.. automodule:: scholarly.data_types
+.. automodule:: scholarly2.data_types
    :members:
    :undoc-members:

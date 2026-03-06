@@ -4,11 +4,11 @@ import sys
 from collections import Counter
 import logging
 import tempfile
-from scholarly import scholarly, ProxyGenerator
-from scholarly._navigator import Navigator
-from scholarly._scholarly import _Scholarly
-from scholarly.data_types import Mandate, PublicationSource
-from scholarly.publication_parser import PublicationParser, _SearchScholarIterator
+from scholarly2 import scholarly, ProxyGenerator
+from scholarly2._navigator import Navigator
+from scholarly2._scholarly import _Scholarly
+from scholarly2.data_types import Mandate, PublicationSource
+from scholarly2.publication_parser import PublicationParser, _SearchScholarIterator
 import random
 import json
 import csv

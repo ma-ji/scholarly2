@@ -4,16 +4,16 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name='scholarly',
-    version='1.7.11',
-    author='Steven A. Cholewiak, Panos Ipeirotis, Victor Silva, Arun Kannawadi',
-    author_email='steven@cholewiak.com, panos@stern.nyu.edu, vsilva@ualberta.ca, arunkannawadi@astro.princeton.edu',
+    name='scholarly2',
+    version='2.0.0',
+    author='Ji Ma',
+    author_email='ma47@iu.edu',
     description='Simple access to Google Scholar authors and citations',
     long_description=long_description,
     long_description_content_type="text/markdown",
     license='Unlicense',
 
-    url='https://github.com/scholarly-python-package/scholarly',
+    url='https://github.com/ma-ji/scholarly2',
     packages=setuptools.find_packages(),
     keywords=['Google Scholar', 'academics', 'citations'],
     classifiers=[

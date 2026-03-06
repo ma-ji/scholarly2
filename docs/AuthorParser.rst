@@ -1,6 +1,6 @@
 AuthorParser module
 -----------------------
 
-.. automodule:: scholarly.author_parser
+.. automodule:: scholarly2.author_parser
    :members:
    :undoc-members:

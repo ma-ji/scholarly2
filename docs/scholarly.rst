@@ -1,5 +1,5 @@
-scholarly Package
-=================
+scholarly2 Package
+==================
 
 .. toctree::
    :maxdepth: 2

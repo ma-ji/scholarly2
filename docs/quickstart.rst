@@ -1,37 +1,36 @@
 Quickstart
 ==========
 
+.. note::
+
+   ``scholarly2`` is a fork of `scholarly <https://github.com/scholarly-python-package/scholarly>`_,
+   maintained independently by Ji Ma. The API is identical; only the package name has changed.
+
 Installation
 ------------
 
-Use ``pip`` to install from pypi:
+Use ``pip`` to install from PyPI:
 
 .. code:: bash
 
-    pip3 install scholarly
+    pip3 install scholarly2
 
-or use ``pip`` to install from github:
-
-.. code:: bash
-
-    pip install git+https://github.com/scholarly-python-package/scholarly.git
-
-or clone the package using git:
+or install from GitHub:
 
 .. code:: bash
 
-    git clone https://github.com/scholarly-python-package/scholarly.git
+    pip install git+https://github.com/ma-ji/scholarly2.git
 
 
 Usage
 -----
 
-Because ``scholarly`` does not use an official API, no key is required.
+Because ``scholarly2`` does not use an official API, no key is required.
 Simply:
 
 .. code:: python
 
-    from scholarly import scholarly
+    from scholarly2 import scholarly
 
     print(scholarly.search_author_id('4bahYMkAAAAJ'))
 
@@ -44,7 +43,7 @@ then retrieve the titles of the papers that cite his most popular
 
 .. code:: python
 
-    from scholarly import scholarly
+    from scholarly2 import scholarly
 
     # Retrieve the author's data, fill-in, and print
     author = scholarly.search_author_id('4bahYMkAAAAJ')
@@ -109,7 +108,7 @@ Methods for ``scholar``
 -----------------------
 
 Author-name search via Google Scholar Citations is not available in
-``scholarly`` because Google gates that endpoint behind sign-in. Use
+``scholarly2`` because Google gates that endpoint behind sign-in. Use
 ``search_author_id`` when you need to start from an author profile.
 
 ``search_author_id``
@@ -218,7 +217,6 @@ Search for articles/publications and return generator of Publication objects.
      'num_citations': 23,
      'pub_url': 'https://jov.arvojournals.org/article.aspx?articleID=2213254',
      'source': 'PUBLICATION_SEARCH_SNIPPET',
-     'url_add_sclib': '/citations?hl=en&xsrf=&continue=/scholar%3Fq%3DPerception%2Bof%2Bphysical%2Bstability%2Band%2Bcenter%2Bof%2Bmass%2Bof%2B3D%2Bobjects%26hl%3Den%26as_sdt%3D0,33&citilm=1&json=&update_op=library_add&info=K8ZpoI6hZNoJ&ei=kiahX9qWNs60mAHIspTIBA',
      'url_scholarbib': '/scholar?q=info:K8ZpoI6hZNoJ:scholar.google.com/&output=cite&scirp=0&hl=en'}
 
 Please note that the ``author_id`` array is positionally matching with
@@ -226,7 +224,7 @@ the ``author`` array. You can use the ``author_id`` to get further
 details about the author using the ``search_author_id`` method.
 
 When Google Scholar includes a ``Show more`` abstract expander for a result,
-``scholarly`` prefers that expanded abstract markup automatically. In those
+``scholarly2`` prefers that expanded abstract markup automatically. In those
 cases, ``pub["bib"]["abstract"]`` contains the full Scholar abstract rather
 than the collapsed preview text.
 
@@ -271,7 +269,7 @@ Fill the Author and Publications container objects with additional information.
 About the Publications:
 '''''''''''''''''''''''
 
-By default, scholarly returns only a lightly filled object for
+By default, scholarly2 returns only a lightly filled object for
 publication, to avoid overloading Google Scholar. If necessary to get
 more information for the publication object, we call this method.
 
@@ -297,134 +295,6 @@ author information to fill, as follows:
 
     >>> author = scholarly.search_author_id('4bahYMkAAAAJ')
     >>> scholarly.pprint(scholarly.fill(author, sections=['basics', 'indices', 'coauthors']))
-    {'affiliation': 'Vision Scientist',
-     'citedby': 304,
-     'citedby5y': 226,
-     'coauthors': [{'affiliation': 'Kurt Koffka Professor of Experimental '
-                                   'Psychology, University of Giessen',
-                    'filled': False,
-                    'name': 'Roland Fleming',
-                    'scholar_id': 'ruUKktgAAAAJ',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': 'Professor of Vision Science, UC Berkeley',
-                    'filled': False,
-                    'name': 'Martin Banks',
-                    'scholar_id': 'Smr99uEAAAAJ',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': 'Durham University, Computer Science & Physics',
-                    'filled': False,
-                    'name': 'Gordon D. Love',
-                    'scholar_id': '3xJXtlwAAAAJ',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': 'Professor of ECE, Purdue University',
-                    'filled': False,
-                    'name': 'Hong Z Tan',
-                    'scholar_id': 'OiVOAHMAAAAJ',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': 'Deepmind',
-                    'filled': False,
-                    'name': 'Ari Weinstein',
-                    'scholar_id': 'MnUboHYAAAAJ',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': "Brigham and Women's Hospital/Harvard Medical "
-                                   'School',
-                    'filled': False,
-                    'name': 'Chia-Chien Wu',
-                    'scholar_id': 'dqokykoAAAAJ',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': 'Professor of Psychology and Cognitive Science, '
-                                   'Rutgers University',
-                    'filled': False,
-                    'name': 'Jacob Feldman',
-                    'scholar_id': 'KoJrMIAAAAAJ',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': 'Research Scientist at Google Research, PhD '
-                                   'Student at UC Berkeley',
-                    'filled': False,
-                    'name': 'Pratul Srinivasan',
-                    'scholar_id': 'aYyDsZ0AAAAJ',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': 'Formerly: Indiana University, Rutgers '
-                                   'University, University of Pennsylvania',
-                    'filled': False,
-                    'name': 'Peter C. Pantelis',
-                    'scholar_id': 'FoVvIK0AAAAJ',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': 'Professor in Computer Science, University of '
-                                   'California, Berkeley',
-                    'filled': False,
-                    'name': 'Ren Ng',
-                    'scholar_id': '6H0mhLUAAAAJ',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': 'Yale University',
-                    'filled': False,
-                    'name': 'Steven W Zucker',
-                    'scholar_id': 'rNTIQXYAAAAJ',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': 'Brown University',
-                    'filled': False,
-                    'name': 'Ben Kunsberg',
-                    'scholar_id': 'JPZWLKQAAAAJ',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': 'Rutgers University, New Brunswick, NJ',
-                    'filled': False,
-                    'name': 'Manish Singh',
-                    'scholar_id': '9XRvM88AAAAJ',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': 'Silicon Valley Professor of ECE, Purdue '
-                                   'University',
-                    'filled': False,
-                    'name': 'David S. Ebert',
-                    'scholar_id': 'fD3JviYAAAAJ',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': 'Clinical Director, Neurolens Inc.,',
-                    'filled': False,
-                    'name': 'Vivek Labhishetty',
-                    'scholar_id': 'tD7OGTQAAAAJ',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': 'MIT',
-                    'filled': False,
-                    'name': 'Joshua B. Tenenbaum',
-                    'scholar_id': 'rRJ9wTJMUB8C',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': 'Chief Scientist, isee AI',
-                    'filled': False,
-                    'name': 'Chris Baker',
-                    'scholar_id': 'bTdT7hAAAAAJ',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': 'Professor of Psychology, Ewha Womans '
-                                   'University',
-                    'filled': False,
-                    'name': 'Sung-Ho Kim',
-                    'scholar_id': 'KXQb7CAAAAAJ',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': 'Assistant Professor, Boston University',
-                    'filled': False,
-                    'name': 'Melissa M. Kibbe',
-                    'scholar_id': 'NN4GKo8AAAAJ',
-                    'source': 'CO_AUTHORS_LIST'},
-                   {'affiliation': 'Nvidia Corporation',
-                    'filled': False,
-                    'name': 'Peter Shirley',
-                    'scholar_id': 'nHx9IgYAAAAJ',
-                    'source': 'CO_AUTHORS_LIST'}],
-     'email_domain': '@berkeley.edu',
-     'filled': False,
-     'hindex': 9,
-     'hindex5y': 9,
-     'homepage': 'http://steven.cholewiak.com/',
-     'i10index': 8,
-     'i10index5y': 7,
-     'interests': ['Depth Cues',
-                   '3D Shape',
-                   'Shape from Texture & Shading',
-                   'Naive Physics',
-                   'Haptics'],
-     'name': 'Steven A. Cholewiak, PhD',
-     'organization': 6518679690484165796,
-     'scholar_id': '4bahYMkAAAAJ',
-     'source': 'SEARCH_AUTHOR_SNIPPETS',
-     'url_picture': 'https://scholar.google.com/citations?view_op=medium_photo&user=4bahYMkAAAAJ'}
 
 ``citedby``
 ^^^^^^^^^^^
@@ -501,21 +371,16 @@ Using proxies
 -------------
 
 In general, Google Scholar does not like bots, and can often block
-scholarly, especially those pages that contain ``scholar?`` in the URL.
-We are actively working towards making scholarly more robust
-towards that front.
+scholarly2, especially those pages that contain ``scholar?`` in the URL.
 
-The most common solution for avoiding network issues is to use proxies
-and Tor.
-
-There is a class in the scholarly library, which handles all these
+There is a class in the scholarly2 library, which handles all these
 different types of connections for you, called ``ProxyGenerator``.
 
-To use this class simply import it from the scholarly package:
+To use this class simply import it from the scholarly2 package:
 
 .. code:: python
 
-    from scholarly import ProxyGenerator
+    from scholarly2 import ProxyGenerator
 
 Then you need to initialize an object:
 
@@ -523,7 +388,7 @@ Then you need to initialize an object:
 
     pg = ProxyGenerator()
 
-Select the desirered connection type from the following options that
+Select the desired connection type from the following options that
 come from the ProxyGenerator class:
 
 -  ScraperAPI()
@@ -542,28 +407,30 @@ Example:
 
     success = pg.SingleProxy(http = <your http proxy>, https = <your https proxy>)
 
-Finally set scholarly to use this proxy for your actions
-
-if you want to use one of the above methods:
+Finally set scholarly2 to use this proxy for your actions
 
 .. code:: python
 
     scholarly.use_proxy(pg)
 
-`scholarly` is smart enough to know which requests really need proxy, and which do not.
-If you set up a proxy, `scholarly` will by default use `FreeProxies` to fetch pages that will not be actively blocked.
-If you would rather have all requests go through the proxy you set, then pass your `pg` object twice.
+``load_socks5_proxy_file``
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Load a SOCKS5 proxy file from an explicit path at runtime.
+##########################################################
+
+This is useful when the proxy file lives outside the working directory or
+has a non-standard name.  The file format is the same as ``.env.socks5``:
+one ``USER:PASS@HOST:PORT`` entry per line, blank lines and ``#`` comments
+are ignored.
 
 .. code:: python
 
-    scholarly.use_proxy(pg, pg)
+    from scholarly2 import scholarly
 
-If you want to run it without any proxy (after setting up one):
-
-.. code:: python
-
-    pg = ProxyGenerator()
-    scholarly.use_proxy(pg, pg)
+    ok = scholarly.load_socks5_proxy_file("/path/to/my.env.socks5")
+    if ok:
+        print("Proxies loaded")
 
 ``ScraperAPI``
 ^^^^^^^^^^^^^^
@@ -572,7 +439,7 @@ pg.ScraperAPI()
 
 .. code:: python
 
-    from scholarly import scholarly, ProxyGenerator
+    from scholarly2 import scholarly, ProxyGenerator
 
     pg = ProxyGenerator()
 
@@ -582,15 +449,11 @@ You will have to provide your ScraperAPI key
 
     success = pg.ScraperAPI(YOUR_SCRAPER_API_KEY)
 
-Or alternatively you can use the environment variables as in the case of Luminati example.
-
 If you have Startup or higher paid plans, you can use additional options that are allowed for your plan.
 
 .. code:: python
 
     success = pg.ScraperAPI(YOUR_SCRAPER_API_KEY, country_code='fr', premium=True, render=True)
-
-See https://www.scraperapi.com/pricing/ to see which options are enable for your plan.
 
 Finally, you can route your query through the ScraperAPI proxy
 
@@ -606,32 +469,12 @@ Finally, you can route your query through the ScraperAPI proxy
 pg.Luminati()
 #############
 
-If you have a luminati proxy service, please refer to the environment
-setup for Luminati below and simply call the following command before
-any function you want to execute.
-
 .. code:: python
 
-    from scholarly import scholarly, ProxyGenerator
+    from scholarly2 import scholarly, ProxyGenerator
 
     pg = ProxyGenerator()
-
-You can use your own configuration
-
-.. code:: python
-
-    success = pg.Luminati(usr= "your_username",passwd ="your_password", port = "your_port" )
-
-Or alternatively you can use the environment variables set in your .env
-file
-
-.. code:: python
-
-    import os
-    pg.Luminati(usr=os.getenv("USERNAME"),passwd=os.getenv("PASSWORD"),proxy_port = os.getenv("PORT"))
-
-.. code:: python
-
+    success = pg.Luminati(usr= "your_username", passwd="your_password", port="your_port")
     scholarly.use_proxy(pg)
 
     author = scholarly.search_author_id('4bahYMkAAAAJ')
@@ -647,7 +490,7 @@ configuration.
 
 .. code:: python
 
-    from scholarly import scholarly, ProxyGenerator
+    from scholarly2 import scholarly, ProxyGenerator
 
     pg = ProxyGenerator()
     success = pg.FreeProxies()
@@ -665,7 +508,7 @@ If you want to use a proxy of your choice, feel free to use this option.
 
 .. code:: python
 
-    from scholarly import scholarly, ProxyGenerator
+    from scholarly2 import scholarly, ProxyGenerator
 
     pg = ProxyGenerator()
     success = pg.SingleProxy(http = <your http proxy>, https = <your https proxy>)
@@ -684,26 +527,9 @@ pg.Tor_External(tor_sock_port: int, tor_control_port: int, tor_password: str)
 
 This method is deprecated since v1.5
 
-This option assumes that you have access to a Tor server and a ``torrc``
-file configuring the Tor server to have a control port configured with a
-password; this setup allows scholarly to refresh the Tor ID, if
-scholarly runs into problems accessing Google Scholar.
-
-If you want to install and use Tor, then install it using the command
-
-::
-
-    sudo apt-get install -y tor
-
-See
-`setup\_tor.sh <https://github.com/scholarly-python-package/scholarly/blob/master/setup_tor.sh>`__
-on how to setup a minimal, working ``torrc`` and set the password for
-the control server. (Note: the script uses ``scholarly_password`` as the
-default password, but you may want to change it for your installation.)
-
 .. code:: python
 
-    from scholarly import scholarly, ProxyGenerator
+    from scholarly2 import scholarly, ProxyGenerator
 
     pg = ProxyGenerator()
     success = pg.Tor_External(tor_sock_port=9050, tor_control_port=9051, tor_password="scholarly_password")
@@ -719,13 +545,13 @@ pg.Tor_internal(tor_cmd=None, tor_sock_port=None, tor_control_port=None)
 
 This method is deprecated since v1.5
 
-If you have Tor installed locally, this option allows scholarly to
+If you have Tor installed locally, this option allows scholarly2 to
 launch its own Tor process. You need to pass a pointer to the Tor
 executable in your system.
 
 .. code:: python
 
-    from scholarly import scholarly, ProxyGenerator
+    from scholarly2 import scholarly, ProxyGenerator
 
     pg = ProxyGenerator()
     success = pg.Tor_Internal(tor_cmd = "tor")
@@ -756,8 +582,7 @@ Define the connection method for the Tests, among these options:
 -  freeproxy
 -  tor
 -  tor\_internal
--  none (if you want a local connection, which is also the default
-   value)
+-  none (if you want a local connection, which is also the default value)
 
 ex.
 
@@ -775,7 +600,7 @@ If using a luminati proxy service please append the following to your
     PORT = <PORT_FOR_LUMINATI>
 
 If you prefer SOCKS5 proxies, create a ``.env.socks5`` file in your
-working directory. ``scholarly`` will automatically load it on import.
+working directory. ``scholarly2`` will automatically load it on import.
 Use one proxy per line in the format ``USER:PASS@HOST:PORT``. See
 ``.env.socks5.example`` in the repository root for an example.
 
@@ -783,3 +608,6 @@ Use one proxy per line in the format ``USER:PASS@HOST:PORT``. See
 
     user1:password1@127.0.0.1:1080
     user2:password2@proxy.example.com:2080
+
+You can also load a proxy file explicitly at runtime using
+``scholarly.load_socks5_proxy_file(path)``.

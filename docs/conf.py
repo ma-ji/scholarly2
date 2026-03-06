@@ -18,9 +18,9 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'scholarlyORG'
-copyright = '2021, Steven A. Cholewiak, Panos Ipeirotis, Victor Silva, Arun Kannawadi'
-author = 'Steven A. Cholewiak, Panos Ipeirotis, Victor Silva, Arun Kannawadi'
+project = 'scholarly2'
+copyright = '2026, Ji Ma'
+author = 'Ji Ma'
 
 # The full version, including alpha/beta/rc tags
 release = '1.0b1'

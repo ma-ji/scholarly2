@@ -1,7 +1,7 @@
 scholarly module
 ----------------
 
-.. automodule:: scholarly._scholarly
+.. automodule:: scholarly2._scholarly
    :members:
    :undoc-members:
    :show-inheritance:

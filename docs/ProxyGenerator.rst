@@ -2,6 +2,6 @@
 ProxyGenerator module
 -----------------------
 
-.. automodule:: scholarly._proxy_generator
+.. automodule:: scholarly2._proxy_generator
    :members:
    :undoc-members:

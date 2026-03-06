@@ -36,10 +36,14 @@ class _Scholarly:
         self._journal_categories = None
         self._load_socks5_proxy_file()
 
-    def _load_socks5_proxy_file(self) -> None:
-        socks5_proxy_file = find_dotenv(".env.socks5", usecwd=True)
-        if not socks5_proxy_file:
-            return
+    def _load_socks5_proxy_file(self, path: str = None) -> bool:
+        """Internal helper. Accepts an explicit path or auto-discovers .env.socks5."""
+        if path is None:
+            socks5_proxy_file = find_dotenv(".env.socks5", usecwd=True)
+            if not socks5_proxy_file:
+                return False
+        else:
+            socks5_proxy_file = path
 
         primary_proxy = ProxyGenerator()
         secondary_proxy = ProxyGenerator()
@@ -49,17 +53,49 @@ class _Scholarly:
             secondary_proxy_works = secondary_proxy.Socks5ProxyFile(socks5_proxy_file)
         except ValueError as exc:
             self.logger.warning("Ignoring %s: %s", socks5_proxy_file, exc)
-            return
+            return False
 
         if not primary_proxy_works:
             self.logger.warning("Unable to enable SOCKS5 proxies from %s", socks5_proxy_file)
-            return
+            return False
 
         if secondary_proxy_works:
             self.use_proxy(primary_proxy, secondary_proxy)
         else:
             self.use_proxy(primary_proxy, primary_proxy)
         self.logger.info("Loaded SOCKS5 proxies from %s", socks5_proxy_file)
+        return True
+
+    def load_socks5_proxy_file(self, path: str) -> bool:
+        """Load SOCKS5 proxies from an explicit file path.
+
+        This is the public counterpart to the automatic ``.env.socks5``
+        loading that happens at import time.  Use it when your proxy file
+        lives outside the working directory or has a non-standard name.
+
+        The file must contain one proxy per line in the format::
+
+            USER:PASS@HOST:PORT
+
+        Lines that are blank or start with ``#`` are ignored.  The proxies
+        are loaded into a rotating pool; ``scholarly2`` will cycle through
+        them automatically.
+
+        :param path: absolute or relative path to the SOCKS5 proxy file
+        :type path: str
+        :returns: ``True`` if at least one proxy was successfully configured,
+                  ``False`` otherwise
+        :rtype: bool
+
+        :Example::
+
+            from scholarly2 import scholarly
+
+            ok = scholarly.load_socks5_proxy_file("/path/to/my.env.socks5")
+            if ok:
+                print("Proxies loaded")
+        """
+        return self._load_socks5_proxy_file(path=path)
 
     @property
     def journal_categories(self):
