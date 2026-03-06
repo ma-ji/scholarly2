@@ -272,13 +272,13 @@ class AuthorParser:
         :param sections: Sections of author profile to be filled, defaults to ``[]``.
 
             * ``basics``: fills name, affiliation, and interests;
-            * ``citations``: fills h-index, i10-index, and 5-year analogues;
+            * ``indices``: fills h-index, i10-index, and 5-year analogues;
             * ``counts``: fills number of citations per year;
             * ``public_access``: fills number of articles with public access mandates;
             * ``coauthors``: fills co-authors;
             * ``publications``: fills publications;
             * ``[]``: fills all of the above
-        :type sections: ['basics','citations','counts','public_access','coauthors','publications',[]] list, optional
+        :type sections: ['basics','indices','counts','public_access','coauthors','publications',[]] list, optional
         :param sortby: Select the order of the citations in the author page. Either by 'citedby' or 'year'. Defaults to 'citedby'.
         :type sortby: string
         :param publication_limit: Select the max number of publications you want you want to fill for the author. Defaults to no limit.
@@ -290,9 +290,8 @@ class AuthorParser:
 
         .. testcode::
 
-            search_query = scholarly.search_author('Steven A Cholewiak')
-            author = next(search_query)
-            author = scholarly.fill(author, sections=['basics', 'citations', 'coauthors'])
+            author = scholarly.search_author_id('4bahYMkAAAAJ')
+            author = scholarly.fill(author, sections=['basics', 'indices', 'coauthors'])
             scholarly.pprint(author)
 
         :Output::

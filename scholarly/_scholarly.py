@@ -34,6 +34,32 @@ class _Scholarly:
         self.__nav = Navigator()
         self.logger = self.__nav.logger
         self._journal_categories = None
+        self._load_socks5_proxy_file()
+
+    def _load_socks5_proxy_file(self) -> None:
+        socks5_proxy_file = find_dotenv(".env.socks5", usecwd=True)
+        if not socks5_proxy_file:
+            return
+
+        primary_proxy = ProxyGenerator()
+        secondary_proxy = ProxyGenerator()
+
+        try:
+            primary_proxy_works = primary_proxy.Socks5ProxyFile(socks5_proxy_file)
+            secondary_proxy_works = secondary_proxy.Socks5ProxyFile(socks5_proxy_file)
+        except ValueError as exc:
+            self.logger.warning("Ignoring %s: %s", socks5_proxy_file, exc)
+            return
+
+        if not primary_proxy_works:
+            self.logger.warning("Unable to enable SOCKS5 proxies from %s", socks5_proxy_file)
+            return
+
+        if secondary_proxy_works:
+            self.use_proxy(primary_proxy, secondary_proxy)
+        else:
+            self.use_proxy(primary_proxy, primary_proxy)
+        self.logger.info("Loaded SOCKS5 proxies from %s", socks5_proxy_file)
 
     @property
     def journal_categories(self):
@@ -181,33 +207,6 @@ class _Scholarly:
         url = _PUBSEARCH.format(requests.utils.quote(pub_title))
         return self.__nav.search_publication(url, filled)
 
-    def search_author(self, name: str):
-        """Search by author name and return a generator of Author objects
-
-        :Example::
-
-            .. testcode::
-
-                search_query = scholarly.search_author('Marty Banks, Berkeley')
-                scholarly.pprint(next(search_query))
-
-        :Output::
-
-        .. testoutput::
-
-            {'affiliation': 'Professor of Vision Science, UC Berkeley',
-             'citedby': 21074,
-             'email_domain': '@berkeley.edu',
-             'filled': False,
-             'interests': ['vision science', 'psychology', 'human factors', 'neuroscience'],
-             'name': 'Martin Banks',
-             'scholar_id': 'Smr99uEAAAAJ',
-             'source': 'SEARCH_AUTHOR_SNIPPETS',
-             'url_picture': 'https://scholar.google.com/citations?view_op=medium_photo&user=Smr99uEAAAAJ'}
-        """
-        url = _AUTHSEARCH.format(requests.utils.quote(name))
-        return self.__nav.search_authors(url)
-
     def fill(self, object: dict, sections=[], sortby: str = "citedby", publication_limit: int = 0) -> Author or Publication:
         """Fills the object according to its type.
         If the container type is Author it will fill the additional author fields
@@ -309,7 +308,7 @@ class _Scholarly:
 
     def _citedby_long(self, object: Publication, years):
         # Extract cites_id. Note: There could be multiple ones, separated by commas.
-        m = re.search("cites=[\d+,]*", object["citedby_url"])
+        m = re.search(r"cites=[\d+,]*", object["citedby_url"])
         pub_id = m.group()[6:]
         for y_hi, y_lo in years:
             sub_citations = self.search_citedby(publication_id=pub_id, year_low=y_lo, year_high=y_hi)
@@ -349,7 +348,10 @@ class _Scholarly:
         return self.__nav.search_author_id(id, filled, sortby, publication_limit)
 
     def search_keyword(self, keyword: str):
-        """Search by keyword and return a generator of Author objects
+        """Search by keyword and return a generator of Author objects.
+
+        This uses the Google Scholar Citations author-discovery endpoint,
+        which Google may gate behind sign-in for anonymous sessions.
 
         :param keyword: keyword to be searched
         :type keyword: str
@@ -384,7 +386,10 @@ class _Scholarly:
         return self.__nav.search_authors(url)
 
     def search_keywords(self, keywords: List[str]):
-        """Search by keywords and return a generator of Author objects
+        """Search by keywords and return a generator of Author objects.
+
+        This uses the Google Scholar Citations author-discovery endpoint,
+        which Google may gate behind sign-in for anonymous sessions.
 
         :param keywords: a list of keywords to be searched
         :type keyword: List[str]
@@ -434,8 +439,11 @@ class _Scholarly:
         return self.__nav.search_publications(url)
 
     def search_author_custom_url(self, url: str)->Author:
-        """Search by custom URL and return a generator of Author objects
-        URL should be of the form '/citation?q=...'
+        """Search by custom URL and return a generator of Author objects.
+
+        URL should target a Google Scholar Citations author-discovery page,
+        such as ``/citations?hl=en&view_op=search_authors&mauthors=...``.
+        Google may gate these pages behind sign-in for anonymous sessions.
 
         :param url: url for the custom author url
         :type url: string
@@ -497,7 +505,10 @@ class _Scholarly:
 
     def search_org(self, name: str, fromauthor: bool = False) -> list:
         """
-        Search by organization name and return a list of possible disambiguations
+        Search by organization name and return a list of possible disambiguations.
+
+        This uses the Google Scholar Citations author-discovery endpoint,
+        which Google may gate behind sign-in for anonymous sessions.
 
         :Example::
             .. testcode::
@@ -518,7 +529,7 @@ class _Scholarly:
 
     def search_author_by_organization(self, organization_id: int):
         """
-        Search for authors in an organization and return a generator of Authors
+        Search for authors in an organization and return a generator of Authors.
 
         ``organization_id`` can be found from the organization name using
         ``search_org``. Alternatively, they can be found in the ``Author`` object.
@@ -526,6 +537,7 @@ class _Scholarly:
         The returned authors are typically in the decreasing order of total citations.
         The authors must have a verified email address and set their affiliation
         appropriately to appear on this list.
+        Google may gate this endpoint behind sign-in for anonymous sessions.
 
         :param organization_id: unique integer id for each organization
         :type organization_id: integer

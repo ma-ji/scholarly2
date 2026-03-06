@@ -25,6 +25,8 @@ setup_notes.md
 #dev testing
 vic.py
 .env
+.env.socks5
 .vscode/settings.json
 test.py
 *.swp
+output/

@@ -30,7 +30,7 @@ setuptools.setup(
                       'deprecated',
                       'fake_useragent',
                       'free-proxy',
-                      'httpx',
+                      'httpx[socks]',
                       'python-dotenv',
                       'requests[socks]',
                       'selenium',

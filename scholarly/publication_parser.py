@@ -45,6 +45,7 @@ class _SearchScholarIterator(object):
     """Iterator that returns Publication objects from the search page
     I have removed all logging from here for simplicity. -V
     """
+    _FULL_ABSTRACT_PAGE_RETRIES = 5
 
     def __init__(self, nav, url: str):
         self._url = url
@@ -55,10 +56,50 @@ class _SearchScholarIterator(object):
         self.pub_parser = PublicationParser(self._nav)
 
     def _load_url(self, url: str):
-        # this is temporary until setup json file
-        self._soup = self._nav._get_soup(url)
+        # Some one-result Scholar pages alternate between a compact abstract
+        # snippet and the richer "Show more" markup. Retry a few times so
+        # exact DOI/title lookups have a chance to capture the expanded form.
+        for _ in range(self._FULL_ABSTRACT_PAGE_RETRIES):
+            self._soup = self._nav._get_soup(url)
+            self._rows = self._soup.select('div.gs_r.gs_or.gs_scl') + self._soup.select('div.gsc_mpat_ttl')
+            if not self._should_retry_search_page():
+                break
+            self._rotate_search_proxy()
         self._pos = 0
-        self._rows = self._soup.find_all('div', class_='gs_r gs_or gs_scl') + self._soup.find_all('div', class_='gsc_mpat_ttl')
+
+    def _should_retry_search_page(self) -> bool:
+        if self._pubtype != PublicationSource.PUBLICATION_SEARCH_SNIPPET:
+            return False
+        if not self._rows:
+            return True
+        if len(self._rows) != 1:
+            return False
+
+        best_result_notice = self._soup.find(string=re.compile(r"Showing the best result for this search\.", re.I))
+        if not best_result_notice:
+            return False
+
+        first_row = self._rows[0]
+        if not first_row.find('div', class_='gs_rs'):
+            return False
+
+        return first_row.find('div', class_='gs_fma_snp') is None
+
+    def _rotate_search_proxy(self) -> None:
+        primary_proxy = getattr(self._nav, "pm1", None)
+        if primary_proxy is None:
+            return
+
+        try:
+            session, _ = primary_proxy.get_next_proxy(
+                old_timeout=getattr(self._nav, "_TIMEOUT", 3),
+                old_proxy=primary_proxy._proxies.get('http://'),
+            )
+        except Exception:
+            return
+
+        if hasattr(self._nav, "_session1"):
+            self._nav._session1 = session
 
     def _get_total_results(self):
         if self._soup.find("div", class_="gs_pda"):
@@ -107,6 +148,29 @@ class PublicationParser(object):
 
     def __init__(self, nav):
         self.nav = nav
+
+    @staticmethod
+    def _normalize_abstract_text(text: str) -> str:
+        abstract = ' '.join(text.replace(u'\u2026', u'').split())
+        if abstract[0:8].lower() == 'abstract':
+            abstract = abstract[8:].lstrip(': ').strip()
+        return abstract
+
+    def _extract_search_result_abstract(self, result_row, databox) -> str:
+        for scope in filter(None, (databox, result_row)):
+            abstract_element = (
+                scope.select_one('.gs_fma_abs .gs_fma_snp')
+                or scope.select_one('.gs_fma_snp')
+            )
+            if abstract_element:
+                return self._normalize_abstract_text(abstract_element.get_text(" ", strip=True))
+
+        abstract_element = databox.select_one('.gs_rs') if databox else None
+        if not abstract_element and result_row is not None:
+            abstract_element = result_row.select_one('.gs_rs')
+        if not abstract_element:
+            return ""
+        return self._normalize_abstract_text(abstract_element.get_text(" ", strip=True))
 
     def _citation_pub(self, __data, publication: Publication):
         # create the bib entry in the dictionary
@@ -236,26 +300,9 @@ class PublicationParser(object):
                 publication['bib']['pub_year'] = 'NA'
             publication['bib']['venue'] = venue
 
-        # Add "readmore" section
-        if databox.find('div', class_='gs_fma_snp'):
-            publication['bib']['abstract'] = databox.find('div', class_='gs_fma_snp').text
-            publication['bib']['abstract'] = publication['bib']['abstract'].replace(u'\u2026', u'')
-            publication['bib']['abstract'] = publication['bib']['abstract'].replace(u'\n', u' ')
-            publication['bib']['abstract'] = publication['bib']['abstract'].strip()
-
-            if publication['bib']['abstract'][0:8].lower() == 'abstract':
-                publication['bib']['abstract'] = publication['bib']['abstract'][9:].strip()
-
-        # Short abstract
-        else:
-            if databox.find('div', class_='gs_rs'):
-                publication['bib']['abstract'] = databox.find('div', class_='gs_rs').text
-                publication['bib']['abstract'] = publication['bib']['abstract'].replace(u'\u2026', u'')
-                publication['bib']['abstract'] = publication['bib']['abstract'].replace(u'\n', u' ')
-                publication['bib']['abstract'] = publication['bib']['abstract'].strip()
-    
-                if publication['bib']['abstract'][0:8].lower() == 'abstract':
-                    publication['bib']['abstract'] = publication['bib']['abstract'][9:].strip()
+        abstract = self._extract_search_result_abstract(__data, databox)
+        if abstract:
+            publication['bib']['abstract'] = abstract
 
         publication['url_scholarbib'] = _BIBCITE.format(cid, pos)
         sclib = self.nav.publib.format(id=cid)
@@ -329,26 +376,22 @@ class PublicationParser(object):
                 elif key == 'description':
                     # try to find all the gsh_csp if they exist
                     abstract = val.find_all(class_='gsh_csp')
-                    result = ""
+                    abstract_parts = []
 
                     # append all gsh_csp together as there can be multiple in certain scenarios
                     for item in abstract:
-                        if item.text[0:8].lower() == 'abstract':
-                            result += item.text[9:].strip()
-                        else:
-                            result += item.text
+                        abstract_parts.append(item.get_text(" ", strip=True))
 
                     if len(abstract) == 0:  # if no gsh_csp were found
                         abstract = val.find(class_='gsh_small')
                         if abstract:
-                            if abstract.text[0:8].lower() == 'abstract':
-                                result = abstract.text[9:].strip()
-                            else:
-                                result = abstract.text
+                            result = abstract.get_text(" ", strip=True)
                         else:
-                            result = ' '.join([description_part for description_part in val])
+                            result = ' '.join(val.stripped_strings)
+                    else:
+                        result = ' '.join(abstract_parts)
 
-                    publication['bib']['abstract'] = result
+                    publication['bib']['abstract'] = self._normalize_abstract_text(result)
                 elif key == 'total citations':
                     publication['cites_id'] = re.findall(
                         _SCHOLARPUBRE, val.a['href'])[0].split(',')

@@ -33,7 +33,7 @@ Simply:
 
     from scholarly import scholarly
 
-    print(next(scholarly.search_author('Steven A. Cholewiak')))
+    print(scholarly.search_author_id('4bahYMkAAAAJ'))
 
 Example
 -------
@@ -47,8 +47,8 @@ then retrieve the titles of the papers that cite his most popular
     from scholarly import scholarly
 
     # Retrieve the author's data, fill-in, and print
-    search_query = scholarly.search_author('Steven A Cholewiak')
-    author = scholarly.fill(next(search_query))
+    author = scholarly.search_author_id('4bahYMkAAAAJ')
+    author = scholarly.fill(author)
     print(author)
 
     # Print the titles of the author's publications
@@ -61,27 +61,56 @@ then retrieve the titles of the papers that cite his most popular
     # Which papers cited that publication?
     print([citation['bib']['title'] for citation in scholarly.citedby(pub)])
 
+Availability notes
+------------------
+
+The following methods work well with anonymous access:
+
+- ``search_author_id``
+- ``search_pubs``
+- ``search_single_pub``
+- ``search_citedby``
+- ``fill``
+- ``citedby``
+- ``bibtex``
+- ``get_journal_categories`` / ``get_journals`` / ``save_journals_csv``
+- ``download_mandates_csv``
+
+The following methods use Google Scholar Citations author-discovery
+pages and Google may gate them behind sign-in for anonymous sessions:
+
+- ``search_keyword``
+- ``search_keywords``
+- ``search_author_custom_url``
+- ``search_org``
+- ``search_author_by_organization``
+
+Finding author IDs
+------------------
+
+If you have a Google Scholar profile URL, use the ``user`` query
+parameter directly:
+
+.. code:: text
+
+    https://scholar.google.com/citations?user=4bahYMkAAAAJ&hl=en
+
+In the example above, the author ID is ``4bahYMkAAAAJ``.
+
+You can also discover author IDs from publication results:
+
+.. code:: python
+
+    >>> pub = scholarly.search_single_pub("Creating correct blur and its effect on accommodation")
+    >>> pub["author_id"]
+    ['4bahYMkAAAAJ', '3xJXtlwAAAAJ', 'Smr99uEAAAAJ']
+
 Methods for ``scholar``
 -----------------------
 
-``search_author``
-^^^^^^^^^^^^^^^^^
-
-Search for an author by name and return a generator of Author objects.
-######################################################################
-.. code:: python
-
-    >>> search_query = scholarly.search_author('Marty Banks, Berkeley')
-    >>> scholarly.pprint(next(search_query))
-    {'affiliation': 'Professor of Vision Science, UC Berkeley',
-     'citedby': 21074,
-     'email_domain': '@berkeley.edu',
-     'filled': False,
-     'interests': ['vision science', 'psychology', 'human factors', 'neuroscience'],
-     'name': 'Martin Banks',
-     'scholar_id': 'Smr99uEAAAAJ',
-     'source': 'SEARCH_AUTHOR_SNIPPETS',
-     'url_picture': 'https://scholar.google.com/citations?view_op=medium_photo&user=Smr99uEAAAAJ'}
+Author-name search via Google Scholar Citations is not available in
+``scholarly`` because Google gates that endpoint behind sign-in. Use
+``search_author_id`` when you need to start from an author profile.
 
 ``search_author_id``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -107,6 +136,10 @@ Search for an author by the id visible in the url of an Authors profile.
 Search for authors by organization ID.
 ########################################################################
 
+.. note::
+
+   This endpoint may require a signed-in Google Scholar Citations session.
+
 .. code:: python
 
     >>> scholarly.search_org('Princeton University')
@@ -130,6 +163,10 @@ Search for authors by organization ID.
 
 Search by keyword and return a generator of Author objects.
 ###########################################################
+
+.. note::
+
+   This endpoint may require a signed-in Google Scholar Citations session.
 
 .. code:: python
 
@@ -188,6 +225,44 @@ Please note that the ``author_id`` array is positionally matching with
 the ``author`` array. You can use the ``author_id`` to get further
 details about the author using the ``search_author_id`` method.
 
+When Google Scholar includes a ``Show more`` abstract expander for a result,
+``scholarly`` prefers that expanded abstract markup automatically. In those
+cases, ``pub["bib"]["abstract"]`` contains the full Scholar abstract rather
+than the collapsed preview text.
+
+``search_single_pub``
+^^^^^^^^^^^^^^^^^^^^^
+
+Search for one best-match publication result and optionally fill it in
+immediately.
+##############################################################
+
+.. code:: python
+
+    >>> pub = scholarly.search_single_pub("Machine-learned epidemiology: real-time detection of foodborne illness at scale")
+    >>> pub["bib"]["title"]
+    'Machine-learned epidemiology: real-time detection of foodborne illness at scale'
+
+    >>> filled_pub = scholarly.search_single_pub(
+    ...     "Machine-learned epidemiology: real-time detection of foodborne illness at scale",
+    ...     filled=True,
+    ... )
+    >>> filled_pub["bib"]["publisher"]
+    'Nature Publishing Group'
+
+``search_citedby``
+^^^^^^^^^^^^^^^^^^
+
+Search by the Google Scholar publication ID from a cited-by URL.
+###############################################################
+
+.. code:: python
+
+    >>> pubs = scholarly.search_citedby(2244396665447968936)
+    >>> first = next(pubs)
+    >>> first["bib"]["title"]
+    'Precision medicine, AI, and the future of personalized health care'
+
 ``fill``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Fill the Author and Publications container objects with additional information.
@@ -220,8 +295,7 @@ author information to fill, as follows:
 
 .. code:: python
 
-    >>> search_query = scholarly.search_author('Steven A Cholewiak')
-    >>> author = next(search_query)
+    >>> author = scholarly.search_author_id('4bahYMkAAAAJ')
     >>> scholarly.pprint(scholarly.fill(author, sections=['basics', 'indices', 'coauthors']))
     {'affiliation': 'Vision Scientist',
      'citedby': 304,
@@ -359,6 +433,13 @@ This is a method for the Publication container objects. It searches
 Google Scholar for other articles that cite this Publication and returns
 a Publication generator.
 
+.. code:: python
+
+    >>> pub = scholarly.search_single_pub("Machine learning")
+    >>> citing_pubs = scholarly.citedby(pub)
+    >>> next(citing_pubs)["bib"]["title"]
+    'Artificial Intelligence in urban design: A systematic review'
+
 ``bibtex``
 ^^^^^^^^^^
 
@@ -384,8 +465,37 @@ by running the code above you should get the following Bibtex entry:
      pub_year = {1996},
      title = {A density-based algorithm for discovering clusters in large spatial databases with noise.},
      venue = {Kdd},
-     volume = {96}
+    volume = {96}
     }
+
+``search_pubs_custom_url``
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Run a publication query from a custom Scholar URL.
+##################################################
+
+.. code:: python
+
+    >>> pubs = scholarly.search_pubs_custom_url(
+    ...     '/scholar?as_q=&as_epq=&as_oq=SFDI+"modulated+imaging"&as_eq=&'
+    ...     'as_occt=any&as_sauthors=&as_publication=&as_ylo=2005&as_yhi=2020&'
+    ...     'hl=en&as_sdt=0%2C31'
+    ... )
+    >>> next(pubs)["bib"]["title"]
+    'Angle correction for small animal tumor imaging with spatial frequency domain imaging (SFDI)'
+
+``get_related_articles``
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Fetch publications from the "related articles" link of a publication.
+#####################################################################
+
+.. code:: python
+
+    >>> pub = scholarly.search_single_pub("Planck 2018 results-VI. Cosmological parameters")
+    >>> related = scholarly.get_related_articles(pub)
+    >>> next(related)["bib"]["title"]
+    'Planck 2018 results-VI. Cosmological parameters'
 
 Using proxies
 -------------
@@ -488,7 +598,7 @@ Finally, you can route your query through the ScraperAPI proxy
 
     scholarly.use_proxy(pg)
 
-    author = next(scholarly.search_author('Steven A Cholewiak'))
+    author = scholarly.search_author_id('4bahYMkAAAAJ')
     scholarly.pprint(author)
 
 ``Luminati``
@@ -524,7 +634,7 @@ file
 
     scholarly.use_proxy(pg)
 
-    author = next(scholarly.search_author('Steven A Cholewiak'))
+    author = scholarly.search_author_id('4bahYMkAAAAJ')
     scholarly.pprint(author)
 
 ``FreeProxies``
@@ -543,7 +653,7 @@ configuration.
     success = pg.FreeProxies()
     scholarly.use_proxy(pg)
 
-    author = next(scholarly.search_author('Steven A Cholewiak'))
+    author = scholarly.search_author_id('4bahYMkAAAAJ')
     scholarly.pprint(author)
 
 ``SingleProxy``
@@ -561,7 +671,7 @@ If you want to use a proxy of your choice, feel free to use this option.
     success = pg.SingleProxy(http = <your http proxy>, https = <your https proxy>)
     scholarly.use_proxy(pg)
 
-    author = next(scholarly.search_author('Steven A Cholewiak'))
+    author = scholarly.search_author_id('4bahYMkAAAAJ')
     scholarly.pprint(author)
 
 **NOTE:** Please create a new proxy object whenever you change proxy
@@ -599,7 +709,7 @@ default password, but you may want to change it for your installation.)
     success = pg.Tor_External(tor_sock_port=9050, tor_control_port=9051, tor_password="scholarly_password")
     scholarly.use_proxy(pg)
 
-    author = next(scholarly.search_author('Steven A Cholewiak'))
+    author = scholarly.search_author_id('4bahYMkAAAAJ')
     scholarly.pprint(author)
 
 ``Tor_Internal``
@@ -621,7 +731,7 @@ executable in your system.
     success = pg.Tor_Internal(tor_cmd = "tor")
     scholarly.use_proxy(pg)
 
-    author = next(scholarly.search_author('Steven A Cholewiak'))
+    author = scholarly.search_author_id('4bahYMkAAAAJ')
     scholarly.pprint(author)
 
 
@@ -663,3 +773,13 @@ If using a luminati proxy service please append the following to your
     USERNAME = <LUMINATI_USERNAME>
     PASSWORD = <LUMINATI_PASSWORD>
     PORT = <PORT_FOR_LUMINATI>
+
+If you prefer SOCKS5 proxies, create a ``.env.socks5`` file in your
+working directory. ``scholarly`` will automatically load it on import.
+Use one proxy per line in the format ``USER:PASS@HOST:PORT``. See
+``.env.socks5.example`` in the repository root for an example.
+
+.. code:: text
+
+    user1:password1@127.0.0.1:1080
+    user2:password2@proxy.example.com:2080

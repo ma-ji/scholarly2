@@ -12,7 +12,6 @@ import random
 import time
 from requests.exceptions import Timeout
 from httpx import TimeoutException
-from selenium.webdriver.common.by import By
 from .publication_parser import _SearchScholarIterator
 from .author_parser import AuthorParser
 from .publication_parser import PublicationParser
@@ -81,6 +80,11 @@ class Navigator(object, metaclass=Singleton):
         else:
             self._session2 = self.pm2._new_session(**kwargs)
 
+    def _get_client(self, pagerequest: str, premium: bool = False):
+        if ("citations?" in pagerequest) and (not premium):
+            return self.pm2, self._session2, False
+        return self.pm1, self._session1, True
+
 
     def _get_page(self, pagerequest: str, premium: bool = False) -> str:
         """Return the data from a webpage
@@ -96,14 +100,7 @@ class Navigator(object, metaclass=Singleton):
         self.logger.info("Getting %s", pagerequest)
         resp = None
         tries = 0
-        if ("citations?" in pagerequest) and (not premium):
-            pm = self.pm2
-            session = self._session2
-            premium = False
-        else:
-            pm = self.pm1
-            session = self._session1
-            premium = True
+        pm, session, premium = self._get_client(pagerequest, premium)
         if pm.proxy_mode is ProxyMode.SCRAPERAPI:
             self.set_timeout(60)
         timeout=self._TIMEOUT
@@ -209,18 +206,6 @@ class Navigator(object, metaclass=Singleton):
             lambda c : f'class="{c}"' in text,
         )
 
-    def _webdriver_has_captcha(self, premium=True) -> bool:
-        """Tests whether the current webdriver page contains a captcha.
-
-        :returns: whether or not the site contains a captcha
-        :rtype: {bool}
-        """
-        pm = self.pm1 if premium else self.pm2
-        return self._has_captcha(
-            lambda i : len(pm._get_webdriver().find_elements(By.ID, i)) > 0,
-            lambda c : len(pm._get_webdriver().find_elements(By.CLASS_NAME, c)) > 0,
-        )
-
     def _has_captcha(self, got_id, got_class) -> bool:
         _CAPTCHA_IDS = [
             "gs_captcha_ccl", # the normal captcha div
@@ -236,7 +221,8 @@ class Navigator(object, metaclass=Singleton):
 
     def _get_soup(self, url: str) -> BeautifulSoup:
         """Return the BeautifulSoup for a page on scholar.google.com"""
-        html = self._get_page('https://scholar.google.com{0}'.format(url))
+        full_url = 'https://scholar.google.com{0}'.format(url)
+        html = self._get_page(full_url)
         html = html.replace(u'\xa0', u' ')
         res = BeautifulSoup(html, 'html.parser')
         try:

@@ -1,4 +1,5 @@
 from typing import Callable
+import inspect
 from fp.fp import FreeProxy
 import random
 import logging
@@ -7,13 +8,15 @@ import requests
 import httpx
 import tempfile
 import urllib3
+import re
 
 from selenium import webdriver
 from selenium.webdriver.support.wait import WebDriverWait, TimeoutException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.proxy import Proxy, ProxyType
 from selenium.common.exceptions import WebDriverException, UnexpectedAlertPresentException
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 from contextlib import contextmanager
 from deprecated import deprecated
 try:
@@ -42,6 +45,10 @@ class MaxTriesExceededException(Exception):
 
 
 class ProxyGenerator(object):
+    _SOCKS5_PROXY_PATTERN = re.compile(
+        r"^(?:socks5://)?(?P<user>[^:@\s]+):(?P<password>[^@\s]+)@(?P<host>[^:\s]+):(?P<port>\d+)$"
+    )
+
     def __init__(self):
         # setting up logger
         self.logger = logging.getLogger('scholarly')
@@ -58,6 +65,7 @@ class ProxyGenerator(object):
         self._tor_password = None
         self._session = None
         self._webdriver = None
+        self._webdriver_unavailable = False
         self._TIMEOUT = 5
         self._new_session()
 
@@ -127,6 +135,92 @@ class ProxyGenerator(object):
         else:
             self.logger.warning("Unable to setup the proxy: http=%s https=%s. Reason unknown." , http, https)
         return proxy_works
+
+    @classmethod
+    def _normalize_socks5_proxy(cls, proxy: str, line_number: int = None) -> str:
+        proxy = proxy.strip()
+        match = cls._SOCKS5_PROXY_PATTERN.fullmatch(proxy)
+        if match is None:
+            if line_number is None:
+                raise ValueError("Invalid SOCKS5 proxy. Expected USER:PASS@HOST:PORT")
+            raise ValueError(
+                f"Invalid SOCKS5 proxy on line {line_number}. Expected USER:PASS@HOST:PORT"
+            )
+        return (
+            "socks5://{user}:{password}@{host}:{port}".format(
+                **match.groupdict()
+            )
+        )
+
+    @classmethod
+    def _load_socks5_proxy_lines(cls, proxy_file: str):
+        proxies = []
+        with open(proxy_file, encoding="utf-8") as handle:
+            for line_number, raw_proxy in enumerate(handle, start=1):
+                proxy = raw_proxy.strip()
+                if not proxy or proxy.startswith("#"):
+                    continue
+                proxies.append(cls._normalize_socks5_proxy(proxy, line_number=line_number))
+
+        if not proxies:
+            raise ValueError(f"No SOCKS5 proxies found in {proxy_file}")
+
+        return proxies
+
+    @staticmethod
+    def _proxy_list_coroutine(proxies):
+        proxy_list = list(proxies)
+        next_index = 0
+        failed_proxy = None
+
+        while True:
+            if failed_proxy in proxy_list:
+                next_index = (proxy_list.index(failed_proxy) + 1) % len(proxy_list)
+
+            proxy = proxy_list[next_index]
+            next_index = (next_index + 1) % len(proxy_list)
+            failed_proxy = yield proxy
+
+    def Socks5Proxies(self, proxies):
+        """
+        Sets up continuously rotating SOCKS5 proxies from a configured list.
+
+        :param proxies: iterable of SOCKS5 proxies in USER:PASS@HOST:PORT format
+        :type proxies: list
+        :returns: whether or not a working proxy was found
+        :rtype: {bool}
+        """
+        normalized_proxies = [self._normalize_socks5_proxy(proxy) for proxy in proxies]
+        if not normalized_proxies:
+            raise ValueError("At least one SOCKS5 proxy is required.")
+
+        self.proxy_mode = ProxyMode.SOCKS5_PROXIES
+        proxy_cycle = self._proxy_list_coroutine(normalized_proxies)
+        self._proxy_gen = proxy_cycle.send
+        proxy = self._proxy_gen(None)
+
+        for attempt in range(len(normalized_proxies)):
+            self.logger.debug("Trying configured SOCKS5 proxy %s", proxy)
+            if self._use_proxy(proxy):
+                self.logger.info("SOCKS5 proxy setup successfully")
+                return True
+
+            if attempt < len(normalized_proxies) - 1:
+                proxy = self._proxy_gen(proxy)
+
+        self.logger.warning("Unable to setup any configured SOCKS5 proxy.")
+        return False
+
+    def Socks5ProxyFile(self, proxy_file: str):
+        """
+        Loads SOCKS5 proxies from a file and enables them as a rotating pool.
+
+        :param proxy_file: path to a file containing one USER:PASS@HOST:PORT per line
+        :type proxy_file: str
+        :returns: whether or not a working proxy was found
+        :rtype: {bool}
+        """
+        return self.Socks5Proxies(self._load_socks5_proxy_lines(proxy_file))
 
     def _check_proxy(self, proxies) -> bool:
         """Checks if a proxy is working.
@@ -347,6 +441,8 @@ class ProxyGenerator(object):
         )
 
     def _get_webdriver(self):
+        if self._webdriver_unavailable:
+            return None
         if self._webdriver:
             try:
                 _ = self._webdriver.current_url
@@ -363,33 +459,56 @@ class ProxyGenerator(object):
             except Exception as err:
                 self.logger.debug("Cannot open Chrome: %s", err)
                 self.logger.info("Neither Chrome nor Firefox/Geckodriver found in PATH")
+                self._webdriver_unavailable = True
+
+    def _get_webdriver_proxy(self):
+        if not self._proxy_works:
+            return None
+
+        proxy_url = self._proxies.get('https://') or self._proxies.get('http://')
+        if not proxy_url:
+            return None
+
+        parsed_proxy = urlparse(proxy_url)
+        if not parsed_proxy.hostname or not parsed_proxy.port:
+            return None
+
+        proxy = Proxy()
+        proxy.proxy_type = ProxyType.MANUAL
+        endpoint = f"{parsed_proxy.hostname}:{parsed_proxy.port}"
+
+        if parsed_proxy.scheme.startswith("socks"):
+            proxy.socks_proxy = endpoint
+            proxy.socks_version = 5
+            if parsed_proxy.username:
+                proxy.socks_username = unquote(parsed_proxy.username)
+            if parsed_proxy.password:
+                proxy.socks_password = unquote(parsed_proxy.password)
+        else:
+            proxy.http_proxy = endpoint
+            proxy.ssl_proxy = endpoint
+
+        return proxy
 
     def _get_chrome_webdriver(self):
-        if self._proxy_works:
-            webdriver.DesiredCapabilities.CHROME['proxy'] = {
-                "httpProxy": self._proxies['http://'],
-                "sslProxy": self._proxies['https://'],
-                "proxyType": "MANUAL"
-            }
-
         options = webdriver.ChromeOptions()
         options.add_argument('--headless')
-        self._webdriver = webdriver.Chrome('chromedriver', options=options)
+        proxy = self._get_webdriver_proxy()
+        if proxy:
+            options.proxy = proxy
+        self._webdriver = webdriver.Chrome(options=options)
         self._webdriver.get("https://scholar.google.com")  # Need to pre-load to set cookies later
 
         return self._webdriver
 
     def _get_firefox_webdriver(self):
-        if self._proxy_works:
-            # Redirect webdriver through proxy
-            webdriver.DesiredCapabilities.FIREFOX['proxy'] = {
-                "httpProxy": self._proxies['http://'],
-                "sslProxy": self._proxies['https://'],
-                "proxyType": "MANUAL",
-            }
-
         options = FirefoxOptions()
         options.add_argument('--headless')
+        proxy = self._get_webdriver_proxy()
+        if proxy:
+            options.proxy = proxy
+            if proxy.socks_proxy:
+                options.set_preference("network.proxy.socks_remote_dns", True)
         self._webdriver = webdriver.Firefox(options=options)
         self._webdriver.get("https://scholar.google.com")  # Need to pre-load to set cookies later
 
@@ -401,6 +520,17 @@ class ProxyGenerator(object):
         # webdriver when handling captchas.
 
         return self._webdriver
+
+    def _sync_session_cookies_from_webdriver(self):
+        webdriver_instance = self._get_webdriver()
+        if webdriver_instance is None or self._session is None:
+            return
+
+        for cookie in webdriver_instance.get_cookies():
+            cookie.pop("httpOnly", None)
+            cookie.pop("expiry", None)
+            cookie.pop("sameSite", None)
+            self._session.cookies.set(**cookie)
 
     def _handle_captcha2(self, url):
         cur_host = urlparse(self._get_webdriver().current_url).hostname
@@ -444,20 +574,17 @@ class ProxyGenerator(object):
             raise TimeoutException(f"Could not solve captcha in time (within {timeout} s).")
         self.logger.info(f"Solved captcha in less than {cur} seconds.")
 
-        for cookie in self._get_webdriver().get_cookies():
-            cookie.pop("httpOnly", None)
-            cookie.pop("expiry", None)
-            cookie.pop("sameSite", None)
-            self._session.cookies.set(**cookie)
+        self._sync_session_cookies_from_webdriver()
 
         return self._session
 
     def _new_session(self, **kwargs):
         init_kwargs = {"follow_redirects": True}
         init_kwargs.update(kwargs)
-        proxies = {}
+        proxies = init_kwargs.pop("proxies", {})
         if self._session:
-            proxies = self._proxies
+            if not proxies:
+                proxies = self._proxies
             self._close_session()
         # self._session = httpx.Client()
         self.got_403 = False
@@ -478,15 +605,16 @@ class ProxyGenerator(object):
         init_kwargs.update(headers=_HEADERS)
 
         if self._proxy_works:
-            init_kwargs["proxies"] = proxies #.get("http", None)
             self._proxies = proxies
             if self.proxy_mode is ProxyMode.SCRAPERAPI:
                 # SSL Certificate verification must be disabled for
                 # ScraperAPI requests to work.
                 # https://www.scraperapi.com/documentation/
                 init_kwargs["verify"] = False
+            init_kwargs.update(self._httpx_proxy_kwargs(proxies, verify=init_kwargs.get("verify", True)))
         self._session = httpx.Client(**init_kwargs)
         self._webdriver = None
+        self._webdriver_unavailable = False
 
         return self._session
 
@@ -644,6 +772,26 @@ class ProxyGenerator(object):
     def _set_proxy_generator(self, gen: Callable[..., str]) -> bool:
         self._proxy_gen = gen
         return True
+
+    @staticmethod
+    def _httpx_proxy_kwargs(proxies, verify=True):
+        if not proxies:
+            return {}
+
+        client_parameters = inspect.signature(httpx.Client.__init__).parameters
+        if "proxies" in client_parameters:
+            return {"proxies": proxies}
+
+        proxy_values = [proxy for proxy in (proxies.get("http://"), proxies.get("https://")) if proxy]
+        if proxy_values and len(set(proxy_values)) <= 1:
+            return {"proxy": proxy_values[0]}
+
+        mounts = {}
+        if proxies.get("http://"):
+            mounts["http://"] = httpx.HTTPTransport(proxy=proxies["http://"], verify=verify)
+        if proxies.get("https://"):
+            mounts["https://"] = httpx.HTTPTransport(proxy=proxies["https://"], verify=verify)
+        return {"mounts": mounts}
 
     def get_next_proxy(self, num_tries = None, old_timeout = 3, old_proxy=None):
         new_timeout = old_timeout

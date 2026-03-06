@@ -84,6 +84,7 @@ class ProxyMode(str, Enum):
     Defines the different types supported.
     """
     FREE_PROXIES = "FREE_PROXIES"
+    SOCKS5_PROXIES = "SOCKS5_PROXIES"
     SCRAPERAPI = "SCRAPERAPI"
     LUMINATI = "LUMINATI"
     SINGLEPROXY = "SINGLEPROXY"
